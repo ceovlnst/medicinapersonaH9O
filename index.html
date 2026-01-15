@@ -3,85 +3,167 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Cupo de Pacientes - MVP</title>
+  <title>MedicinaPersonal · Cupo de Pacientes</title>
   <style>
-    :root{--bg:#0b1220;--card:#121a2b;--muted:#9fb0d0;--text:#e9f0ff;--accent:#4ea1ff;--danger:#ff5b6e;--ok:#2ee59d;}
-    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:linear-gradient(180deg,#070b14,#0b1220);color:var(--text);}
-    .wrap{max-width:1100px;margin:0 auto;padding:22px;}
-    .row{display:flex;gap:16px;flex-wrap:wrap;}
-    .card{background:rgba(18,26,43,.9);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:16px;box-shadow:0 12px 30px rgba(0,0,0,.35);}
-    .card h2,.card h3{margin:0 0 10px 0}
-    input,select,textarea,button{font:inherit;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:var(--text);padding:10px 12px;outline:none}
-    textarea{min-height:74px;resize:vertical}
-    button{background:rgba(78,161,255,.18);border-color:rgba(78,161,255,.35);cursor:pointer}
-    button:hover{background:rgba(78,161,255,.28)}
-    button.secondary{background:rgba(255,255,255,.06)}
-    button.danger{background:rgba(255,91,110,.16);border-color:rgba(255,91,110,.35)}
+    :root{
+      --bg:#f6f8fb;
+      --card:#ffffff;
+      --text:#0f172a;
+      --muted:#64748b;
+      --line:#e2e8f0;
+      --accent:#0ea5a4;
+      --accent2:#1d4ed8;
+      --danger:#dc2626;
+      --ok:#16a34a;
+      --shadow: 0 10px 30px rgba(2, 6, 23, .08);
+      --radius: 16px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      background: radial-gradient(900px 500px at 10% 0%, rgba(29,78,216,.08), transparent 60%),
+                  radial-gradient(900px 500px at 90% 0%, rgba(14,165,164,.10), transparent 55%),
+                  var(--bg);
+      color:var(--text);
+    }
+    .wrap{max-width:1120px;margin:0 auto;padding:26px 18px 40px}
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+    h1{margin:0;font-size:22px;letter-spacing:.2px}
+    .subtitle{color:var(--muted);font-size:13px;margin-top:4px}
+    .card{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      padding:16px;
+      box-shadow: var(--shadow);
+    }
+    .row{display:flex;gap:16px;flex-wrap:wrap}
     .muted{color:var(--muted);font-size:13px}
-    .pill{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04)}
-    .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
-    .list{width:100%;border-collapse:collapse}
-    .list th,.list td{padding:10px;border-bottom:1px solid rgba(255,255,255,.08);text-align:left;font-size:14px;vertical-align:top}
-    .list th{color:var(--muted);font-weight:600}
+    .small{font-size:12px}
+    .pill{
+      display:inline-flex;align-items:center;gap:10px;
+      padding:8px 10px;border-radius:999px;
+      border:1px solid var(--line);
+      background:linear-gradient(180deg,#fff, #fbfdff);
+    }
+    input,select,textarea,button{
+      font:inherit;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background:#fff;
+      color:var(--text);
+      padding:10px 12px;
+      outline:none;
+    }
+    input:focus,select:focus,textarea:focus{
+      border-color: rgba(14,165,164,.55);
+      box-shadow: 0 0 0 4px rgba(14,165,164,.12);
+    }
+    textarea{min-height:78px;resize:vertical}
+    button{
+      cursor:pointer;
+      border-color: rgba(14,165,164,.35);
+      background: linear-gradient(180deg, rgba(14,165,164,.14), rgba(14,165,164,.08));
+    }
+    button:hover{filter:brightness(.98)}
+    button.secondary{
+      border-color: var(--line);
+      background: linear-gradient(180deg, #ffffff, #f8fafc);
+    }
     .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
     @media(max-width:900px){.grid2{grid-template-columns:1fr}}
     .hidden{display:none}
-    .toast{position:fixed;right:18px;bottom:18px;min-width:260px;max-width:420px;padding:12px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.14);background:rgba(18,26,43,.96);box-shadow:0 16px 40px rgba(0,0,0,.45)}
-    .toast.ok{border-color:rgba(46,229,157,.35)}
-    .toast.err{border-color:rgba(255,91,110,.35)}
-    .small{font-size:12px}
-    .kbd{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size:12px; padding:2px 6px;border:1px solid rgba(255,255,255,.16);border-radius:8px;background:rgba(255,255,255,.06)}
+    .list{width:100%;border-collapse:collapse}
+    .list th,.list td{padding:10px;border-bottom:1px solid var(--line);text-align:left;font-size:14px;vertical-align:top}
+    .list th{color:var(--muted);font-weight:650;background:linear-gradient(180deg,#fff,#fbfdff)}
+    .badge{
+      display:inline-flex;align-items:center;gap:6px;
+      padding:4px 10px;border-radius:999px;
+      border:1px solid var(--line);
+      background:#fff;
+      color:var(--muted);
+      font-size:12px;
+    }
+    .kbd{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size:12px; padding:2px 6px;
+      border:1px solid var(--line);border-radius:8px;background:#fff;
+      color:var(--muted);
+    }
+    .hr{height:1px;background:var(--line);margin:12px 0}
+    .toast{
+      position:fixed;right:18px;bottom:18px;
+      min-width:260px;max-width:420px;
+      padding:12px 14px;border-radius:14px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.96);
+      box-shadow: 0 16px 40px rgba(2,6,23,.14);
+      backdrop-filter: blur(8px);
+    }
+    .toast.ok{border-color: rgba(22,163,74,.35)}
+    .toast.err{border-color: rgba(220,38,38,.35)}
+    .brandmark{
+      width:38px;height:38px;border-radius:12px;
+      background: radial-gradient(circle at 30% 30%, rgba(29,78,216,.22), transparent 55%),
+                  radial-gradient(circle at 70% 70%, rgba(14,165,164,.22), transparent 55%),
+                  linear-gradient(180deg, #ffffff, #f8fafc);
+      border:1px solid var(--line);
+      display:flex;align-items:center;justify-content:center;
+      box-shadow: 0 10px 25px rgba(2,6,23,.08);
+    }
+    .brandmark svg{opacity:.85}
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="topbar">
-      <div>
-        <h2 style="margin:0">Cupo de Pacientes (MVP)</h2>
-        <div class="muted">Pacientes + tareas + recordatorios (OTP por email)</div>
+      <div style="display:flex;gap:12px;align-items:center">
+        <div class="brandmark" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2v20M2 12h20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M7 12h10" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity=".35"/>
+          </svg>
+        </div>
+        <div>
+          <h1>MedicinaPersonal · Cupo de Pacientes</h1>
+          <div class="subtitle">Gestión de pacientes, tareas y recordatorios · Acceso por OTP</div>
+        </div>
       </div>
+
       <div class="pill">
         <span id="meLabel" class="muted">No autenticado</span>
         <button id="btnLogout" class="secondary hidden">Salir</button>
       </div>
     </div>
 
-    <!-- CONFIG -->
-    <div class="card" style="margin-bottom:14px">
-      <h3>1) Configuración rápida</h3>
-      <div class="muted">Pega aquí la URL de tu Cloudflare Worker (proxy) que reenvía a tu WebApp de GAS.</div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
-        <input id="workerUrl" style="flex:1;min-width:320px" placeholder="https://tu-worker.tu-dominio.workers.dev" />
-        <button id="btnSaveCfg">Guardar</button>
-        <button id="btnTestCfg" class="secondary">Probar</button>
-      </div>
-      <div class="muted small" style="margin-top:10px">
-        Tip: si aún no tienes Worker, puedes llamar directo a la WebApp de GAS, pero tendrás más lío con CORS.
-      </div>
-    </div>
-
-    <!-- LOGIN -->
+    <!-- LOGIN (no worker, no config) -->
     <div id="loginCard" class="card">
-      <h3>2) Acceso</h3>
-      <div class="grid2" style="margin-top:10px">
+      <h3 style="margin:0 0 6px 0">Acceso</h3>
+      <div class="muted">Introduce tu email, solicita un código y valida el acceso.</div>
+
+      <div class="grid2" style="margin-top:12px">
         <div>
           <div class="muted">Email</div>
           <input id="loginEmail" placeholder="doctor@dominio.com" />
-          <div style="display:flex;gap:10px;margin-top:10px">
+          <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap">
             <button id="btnRequestOtp">Enviar código</button>
+            <span class="badge">Caduca en 10 min</span>
           </div>
           <div class="muted small" style="margin-top:8px">
-            Te llegará un código de 6 dígitos (caduca en 10 min).
+            Si no llega, revisa spam o activa el usuario en <span class="kbd">Users</span>.
           </div>
         </div>
+
         <div>
           <div class="muted">Código OTP</div>
-          <input id="loginCode" placeholder="123456" />
-          <div style="display:flex;gap:10px;margin-top:10px">
+          <input id="loginCode" placeholder="123456" inputmode="numeric" />
+          <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap">
             <button id="btnVerifyOtp">Entrar</button>
+            <button id="btnPasteEmail" class="secondary">Usar email guardado</button>
           </div>
           <div class="muted small" style="margin-top:8px">
-            Si no llega, revisa spam o que el usuario esté activo en la hoja <span class="kbd">Users</span>.
+            Consejo: guarda tu email una vez y listo.
           </div>
         </div>
       </div>
@@ -90,20 +172,23 @@
     <!-- APP -->
     <div id="appArea" class="hidden">
       <div class="row" style="margin-top:14px">
+        <!-- Patients -->
         <div class="card" style="flex:1;min-width:360px">
           <div style="display:flex;align-items:end;gap:10px;flex-wrap:wrap;justify-content:space-between">
             <div>
-              <h3>Pacientes</h3>
+              <h3 style="margin:0 0 6px 0">Pacientes</h3>
               <div class="muted">Buscar y abrir ficha</div>
             </div>
-            <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
               <input id="qPatients" placeholder="Buscar..." />
               <button id="btnRefreshPatients" class="secondary">Actualizar</button>
               <button id="btnNewPatient">+ Nuevo</button>
             </div>
           </div>
 
-          <table class="list" style="margin-top:10px">
+          <div class="hr"></div>
+
+          <table class="list">
             <thead>
               <tr>
                 <th>Nombre</th>
@@ -116,21 +201,22 @@
           </table>
         </div>
 
+        <!-- Patient pane + tasks -->
         <div class="card" style="flex:1;min-width:360px">
-          <h3>Ficha / Tareas</h3>
-          <div class="muted">Selecciona un paciente para ver detalles y crear recordatorios.</div>
+          <h3 style="margin:0 0 6px 0">Ficha / Recordatorios</h3>
+          <div class="muted">Crea tareas con fecha objetivo (también se reflejan en el calendario).</div>
 
           <div id="patientPane" class="hidden" style="margin-top:12px">
             <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between">
               <div>
-                <div id="pName" style="font-weight:700;font-size:18px"></div>
+                <div id="pName" style="font-weight:800;font-size:18px"></div>
                 <div class="muted small"><span id="pMeta"></span> · <span id="pId"></span></div>
               </div>
               <button id="btnEditPatient" class="secondary">Editar</button>
             </div>
 
             <div style="margin-top:14px" class="card">
-              <h4 style="margin:0 0 10px 0">Nueva tarea / recordatorio</h4>
+              <h4 style="margin:0 0 10px 0">Nueva tarea</h4>
               <div class="grid2">
                 <div>
                   <div class="muted">Título</div>
@@ -162,10 +248,11 @@
               </div>
               <div style="margin-top:10px">
                 <div class="muted">Detalles</div>
-                <textarea id="tDetails" placeholder="Notas clínicas de la tarea (breve)"></textarea>
+                <textarea id="tDetails" placeholder="Notas breves (evita datos sensibles innecesarios)"></textarea>
               </div>
-              <div style="display:flex;gap:10px;margin-top:10px">
+              <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap">
                 <button id="btnCreateTask">Crear tarea</button>
+                <span class="badge">Se crea evento en Calendar</span>
               </div>
             </div>
 
@@ -194,39 +281,20 @@
         </div>
       </div>
     </div>
-
   </div>
 
 <script>
 (function(){
-  // ---------------- Config ----------------
-  const CFG_KEY = "cupo_cfg_workerUrl";
+  // Worker fijo (el usuario NO introduce nada)
+  const WORKER_URL = "https://medicinapersonal.ceo-vlnst.workers.dev";
   const SESS_KEY = "cupo_sessionId";
   const EMAIL_KEY = "cupo_email";
 
   const el = id => document.getElementById(id);
-  const workerUrlInput = el("workerUrl");
-
-  function loadCfg(){
-    workerUrlInput.value = localStorage.getItem(CFG_KEY) || "";
-  }
-  function saveCfg(){
-    const v = (workerUrlInput.value||"").trim();
-    localStorage.setItem(CFG_KEY, v);
-    toast("Configuración guardada", true);
-  }
 
   async function api(fn, args){
-    const workerUrl = (localStorage.getItem(CFG_KEY)||"").trim();
-    if(!workerUrl) throw new Error("Configura primero la URL del Worker.");
-    const payload = {
-      fn,
-      args: args || {},
-      meta: {
-        ua: navigator.userAgent
-      }
-    };
-    const res = await fetch(workerUrl, {
+    const payload = { fn, args: args || {}, meta: { ua: navigator.userAgent } };
+    const res = await fetch(WORKER_URL, {
       method:"POST",
       headers:{ "Content-Type":"application/json" },
       body: JSON.stringify(payload)
@@ -236,21 +304,22 @@
     return data;
   }
 
-  // ---------------- Toast ----------------
+  // Toast
   let toastTimer=null;
+  function escapeHtml(s){
+    return String(s||"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+  }
   function toast(msg, ok){
     clearTimeout(toastTimer);
     const d=document.createElement("div");
     d.className="toast " + (ok ? "ok":"err");
-    d.innerHTML = "<div style='font-weight:650;margin-bottom:4px'>" + (ok?"OK":"Error") + "</div><div>"+escapeHtml(msg)+"</div>";
+    d.innerHTML = "<div style='font-weight:800;margin-bottom:4px'>" + (ok?"OK":"Error") + "</div><div>"+escapeHtml(msg)+"</div>";
     document.body.appendChild(d);
     toastTimer=setTimeout(()=>{ d.remove(); }, 3200);
   }
-  function escapeHtml(s){
-    return String(s||"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
-  }
 
-  // ---------------- Auth ----------------
+  // Auth
   const btnLogout = el("btnLogout");
   const meLabel = el("meLabel");
   const loginCard = el("loginCard");
@@ -308,17 +377,23 @@
     }catch(err){ toast(err.message, false); }
   };
 
+  el("btnPasteEmail").onclick = () => {
+    const email = (localStorage.getItem(EMAIL_KEY)||"").trim();
+    if(!email) return toast("No hay email guardado", false);
+    el("loginEmail").value = email;
+    toast("Email cargado", true);
+  };
+
   btnLogout.onclick = () => {
     setSessionId("");
     toast("Sesión cerrada", true);
     refreshMe();
   };
 
-  // ---------------- Patients UI ----------------
+  // Patients UI
   const patientsTbody = el("patientsTbody");
   const tasksTbody = el("tasksTbody");
   const qPatients = el("qPatients");
-
   let currentPatientId = "";
 
   function setCurrentPatient(p){
@@ -343,7 +418,7 @@
     const rows = res.patients || [];
     patientsTbody.innerHTML = rows.map(p => `
       <tr>
-        <td><div style="font-weight:650">${escapeHtml(p.name||"")}</div><div class="muted small">${escapeHtml(p.patientId||"")}</div></td>
+        <td><div style="font-weight:800">${escapeHtml(p.name||"")}</div><div class="muted small">${escapeHtml(p.patientId||"")}</div></td>
         <td class="muted">${escapeHtml([p.phone||"", p.email||""].filter(Boolean).join(" · "))}</td>
         <td>${escapeHtml(p.status||"")}</td>
         <td><button class="secondary" data-open="${escapeHtml(p.patientId)}">Abrir</button></td>
@@ -362,7 +437,6 @@
   }
 
   el("btnRefreshPatients").onclick = refreshPatients;
-
   qPatients.onkeydown = (e)=>{ if(e.key==="Enter") refreshPatients(); };
 
   el("btnNewPatient").onclick = async () => {
@@ -370,11 +444,7 @@
     const name = prompt("Nombre y apellidos del paciente:");
     if(!name) return;
     try{
-      const res = await api("patients.create", {
-        sessionId,
-        name,
-        status:"ACTIVE"
-      });
+      const res = await api("patients.create", { sessionId, name, status:"ACTIVE" });
       toast("Paciente creado", true);
       await refreshPatients();
       const got = await api("patients.get", { sessionId, patientId: res.patientId });
@@ -394,7 +464,8 @@
       if(phone===null) return;
       const email = prompt("Email", p.email||"");
       if(email===null) return;
-      const notes = prompt("Notas (breve)", p.notes||"") ?? p.notes||"";
+      const notes = prompt("Notas (breve)", p.notes||"");
+      if(notes===null) return;
       await api("patients.update", { sessionId, patientId: currentPatientId, name, phone, email, notes });
       toast("Paciente actualizado", true);
       await refreshPatients();
@@ -403,7 +474,7 @@
     }catch(err){ toast(err.message, false); }
   };
 
-  // ---------------- Tasks UI ----------------
+  // Tasks UI
   async function refreshTasks(){
     const sessionId = getSessionId();
     if(!currentPatientId) return;
@@ -412,7 +483,10 @@
     tasksTbody.innerHTML = rows.map(t => `
       <tr>
         <td>${escapeHtml(t.dueDate||"")}</td>
-        <td><div style="font-weight:650">${escapeHtml(t.title||"")}</div><div class="muted small">${escapeHtml(t.type||"")}${t.details?(" · "+escapeHtml(t.details)):""}</div></td>
+        <td>
+          <div style="font-weight:800">${escapeHtml(t.title||"")}</div>
+          <div class="muted small">${escapeHtml(t.type||"")}${t.details?(" · "+escapeHtml(t.details)):""}</div>
+        </td>
         <td>${escapeHtml(t.priority||"")}</td>
         <td style="white-space:nowrap">
           <button class="secondary" data-done="${escapeHtml(t.taskId)}">Hecho</button>
@@ -464,19 +538,7 @@
     }catch(err){ toast(err.message, false); }
   };
 
-  // ---------------- Buttons ----------------
-  el("btnSaveCfg").onclick = saveCfg;
-  el("btnTestCfg").onclick = async () => {
-    try{
-      const sessionId = getSessionId();
-      if(!sessionId) return toast("Config ok. (Inicia sesión para probar auth.me)", true);
-      await api("auth.me", { sessionId });
-      toast("Conexión OK", true);
-    }catch(err){ toast(err.message, false); }
-  };
-
   // init
-  loadCfg();
   refreshMe();
 })();
 </script>
