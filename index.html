@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Cupo de Pacientes - MVP</title>
+  <style>
+    :root{--bg:#0b1220;--card:#121a2b;--muted:#9fb0d0;--text:#e9f0ff;--accent:#4ea1ff;--danger:#ff5b6e;--ok:#2ee59d;}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:linear-gradient(180deg,#070b14,#0b1220);color:var(--text);}
+    .wrap{max-width:1100px;margin:0 auto;padding:22px;}
+    .row{display:flex;gap:16px;flex-wrap:wrap;}
+    .card{background:rgba(18,26,43,.9);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:16px;box-shadow:0 12px 30px rgba(0,0,0,.35);}
+    .card h2,.card h3{margin:0 0 10px 0}
+    input,select,textarea,button{font:inherit;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:var(--text);padding:10px 12px;outline:none}
+    textarea{min-height:74px;resize:vertical}
+    button{background:rgba(78,161,255,.18);border-color:rgba(78,161,255,.35);cursor:pointer}
+    button:hover{background:rgba(78,161,255,.28)}
+    button.secondary{background:rgba(255,255,255,.06)}
+    button.danger{background:rgba(255,91,110,.16);border-color:rgba(255,91,110,.35)}
+    .muted{color:var(--muted);font-size:13px}
+    .pill{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04)}
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+    .list{width:100%;border-collapse:collapse}
+    .list th,.list td{padding:10px;border-bottom:1px solid rgba(255,255,255,.08);text-align:left;font-size:14px;vertical-align:top}
+    .list th{color:var(--muted);font-weight:600}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    @media(max-width:900px){.grid2{grid-template-columns:1fr}}
+    .hidden{display:none}
+    .toast{position:fixed;right:18px;bottom:18px;min-width:260px;max-width:420px;padding:12px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.14);background:rgba(18,26,43,.96);box-shadow:0 16px 40px rgba(0,0,0,.45)}
+    .toast.ok{border-color:rgba(46,229,157,.35)}
+    .toast.err{border-color:rgba(255,91,110,.35)}
+    .small{font-size:12px}
+    .kbd{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size:12px; padding:2px 6px;border:1px solid rgba(255,255,255,.16);border-radius:8px;background:rgba(255,255,255,.06)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div>
+        <h2 style="margin:0">Cupo de Pacientes (MVP)</h2>
+        <div class="muted">Pacientes + tareas + recordatorios (OTP por email)</div>
+      </div>
+      <div class="pill">
+        <span id="meLabel" class="muted">No autenticado</span>
+        <button id="btnLogout" class="secondary hidden">Salir</button>
+      </div>
+    </div>
+
+    <!-- CONFIG -->
+    <div class="card" style="margin-bottom:14px">
+      <h3>1) Configuración rápida</h3>
+      <div class="muted">Pega aquí la URL de tu Cloudflare Worker (proxy) que reenvía a tu WebApp de GAS.</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
+        <input id="workerUrl" style="flex:1;min-width:320px" placeholder="https://tu-worker.tu-dominio.workers.dev" />
+        <button id="btnSaveCfg">Guardar</button>
+        <button id="btnTestCfg" class="secondary">Probar</button>
+      </div>
+      <div class="muted small" style="margin-top:10px">
+        Tip: si aún no tienes Worker, puedes llamar directo a la WebApp de GAS, pero tendrás más lío con CORS.
+      </div>
+    </div>
+
+    <!-- LOGIN -->
+    <div id="loginCard" class="card">
+      <h3>2) Acceso</h3>
+      <div class="grid2" style="margin-top:10px">
+        <div>
+          <div class="muted">Email</div>
+          <input id="loginEmail" placeholder="doctor@dominio.com" />
+          <div style="display:flex;gap:10px;margin-top:10px">
+            <button id="btnRequestOtp">Enviar código</button>
+          </div>
+          <div class="muted small" style="margin-top:8px">
+            Te llegará un código de 6 dígitos (caduca en 10 min).
+          </div>
+        </div>
+        <div>
+          <div class="muted">Código OTP</div>
+          <input id="loginCode" placeholder="123456" />
+          <div style="display:flex;gap:10px;margin-top:10px">
+            <button id="btnVerifyOtp">Entrar</button>
+          </div>
+          <div class="muted small" style="margin-top:8px">
+            Si no llega, revisa spam o que el usuario esté activo en la hoja <span class="kbd">Users</span>.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- APP -->
+    <div id="appArea" class="hidden">
+      <div class="row" style="margin-top:14px">
+        <div class="card" style="flex:1;min-width:360px">
+          <div style="display:flex;align-items:end;gap:10px;flex-wrap:wrap;justify-content:space-between">
+            <div>
+              <h3>Pacientes</h3>
+              <div class="muted">Buscar y abrir ficha</div>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <input id="qPatients" placeholder="Buscar..." />
+              <button id="btnRefreshPatients" class="secondary">Actualizar</button>
+              <button id="btnNewPatient">+ Nuevo</button>
+            </div>
+          </div>
+
+          <table class="list" style="margin-top:10px">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Contacto</th>
+                <th>Estado</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="patientsTbody"></tbody>
+          </table>
+        </div>
+
+        <div class="card" style="flex:1;min-width:360px">
+          <h3>Ficha / Tareas</h3>
+          <div class="muted">Selecciona un paciente para ver detalles y crear recordatorios.</div>
+
+          <div id="patientPane" class="hidden" style="margin-top:12px">
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between">
+              <div>
+                <div id="pName" style="font-weight:700;font-size:18px"></div>
+                <div class="muted small"><span id="pMeta"></span> · <span id="pId"></span></div>
+              </div>
+              <button id="btnEditPatient" class="secondary">Editar</button>
+            </div>
+
+            <div style="margin-top:14px" class="card">
+              <h4 style="margin:0 0 10px 0">Nueva tarea / recordatorio</h4>
+              <div class="grid2">
+                <div>
+                  <div class="muted">Título</div>
+                  <input id="tTitle" placeholder="Revisión TA / Analítica / Vacuna..." />
+                </div>
+                <div>
+                  <div class="muted">Fecha objetivo</div>
+                  <input id="tDue" type="date" />
+                </div>
+                <div>
+                  <div class="muted">Tipo</div>
+                  <select id="tType">
+                    <option>GENERAL</option>
+                    <option>ANALITICA</option>
+                    <option>REVISION</option>
+                    <option>VACUNA</option>
+                    <option>LLAMADA</option>
+                    <option>PRUEBA</option>
+                  </select>
+                </div>
+                <div>
+                  <div class="muted">Prioridad</div>
+                  <select id="tPri">
+                    <option>NORMAL</option>
+                    <option>HIGH</option>
+                    <option>LOW</option>
+                  </select>
+                </div>
+              </div>
+              <div style="margin-top:10px">
+                <div class="muted">Detalles</div>
+                <textarea id="tDetails" placeholder="Notas clínicas de la tarea (breve)"></textarea>
+              </div>
+              <div style="display:flex;gap:10px;margin-top:10px">
+                <button id="btnCreateTask">Crear tarea</button>
+              </div>
+            </div>
+
+            <div style="margin-top:14px">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+                <h4 style="margin:0">Tareas pendientes</h4>
+                <button id="btnRefreshTasks" class="secondary">Actualizar</button>
+              </div>
+              <table class="list" style="margin-top:8px">
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Tarea</th>
+                    <th>Prioridad</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="tasksTbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div id="emptyPane" style="margin-top:12px" class="muted">
+            Ningún paciente seleccionado.
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+<script>
+(function(){
+  // ---------------- Config ----------------
+  const CFG_KEY = "cupo_cfg_workerUrl";
+  const SESS_KEY = "cupo_sessionId";
+  const EMAIL_KEY = "cupo_email";
+
+  const el = id => document.getElementById(id);
+  const workerUrlInput = el("workerUrl");
+
+  function loadCfg(){
+    workerUrlInput.value = localStorage.getItem(CFG_KEY) || "";
+  }
+  function saveCfg(){
+    const v = (workerUrlInput.value||"").trim();
+    localStorage.setItem(CFG_KEY, v);
+    toast("Configuración guardada", true);
+  }
+
+  async function api(fn, args){
+    const workerUrl = (localStorage.getItem(CFG_KEY)||"").trim();
+    if(!workerUrl) throw new Error("Configura primero la URL del Worker.");
+    const payload = {
+      fn,
+      args: args || {},
+      meta: {
+        ua: navigator.userAgent
+      }
+    };
+    const res = await fetch(workerUrl, {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if(!data.ok) throw new Error(data.error || "Error");
+    return data;
+  }
+
+  // ---------------- Toast ----------------
+  let toastTimer=null;
+  function toast(msg, ok){
+    clearTimeout(toastTimer);
+    const d=document.createElement("div");
+    d.className="toast " + (ok ? "ok":"err");
+    d.innerHTML = "<div style='font-weight:650;margin-bottom:4px'>" + (ok?"OK":"Error") + "</div><div>"+escapeHtml(msg)+"</div>";
+    document.body.appendChild(d);
+    toastTimer=setTimeout(()=>{ d.remove(); }, 3200);
+  }
+  function escapeHtml(s){
+    return String(s||"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
+  }
+
+  // ---------------- Auth ----------------
+  const btnLogout = el("btnLogout");
+  const meLabel = el("meLabel");
+  const loginCard = el("loginCard");
+  const appArea = el("appArea");
+
+  function getSessionId(){ return localStorage.getItem(SESS_KEY) || ""; }
+  function setSessionId(v){ localStorage.setItem(SESS_KEY, v||""); }
+  function setEmail(v){ localStorage.setItem(EMAIL_KEY, v||""); }
+
+  async function refreshMe(){
+    const sessionId = getSessionId();
+    if(!sessionId){
+      meLabel.textContent = "No autenticado";
+      btnLogout.classList.add("hidden");
+      loginCard.classList.remove("hidden");
+      appArea.classList.add("hidden");
+      return;
+    }
+    try{
+      const me = await api("auth.me", { sessionId });
+      meLabel.textContent = me.email + " · " + me.role;
+      btnLogout.classList.remove("hidden");
+      loginCard.classList.add("hidden");
+      appArea.classList.remove("hidden");
+      await refreshPatients();
+    }catch(err){
+      setSessionId("");
+      toast(err.message, false);
+      meLabel.textContent = "No autenticado";
+      btnLogout.classList.add("hidden");
+      loginCard.classList.remove("hidden");
+      appArea.classList.add("hidden");
+    }
+  }
+
+  el("btnRequestOtp").onclick = async () => {
+    try{
+      const email = (el("loginEmail").value||"").trim().toLowerCase();
+      if(!email) return toast("Introduce un email", false);
+      await api("auth.requestOtp", { email });
+      setEmail(email);
+      toast("Código enviado a " + email, true);
+    }catch(err){ toast(err.message, false); }
+  };
+
+  el("btnVerifyOtp").onclick = async () => {
+    try{
+      const email = (el("loginEmail").value||localStorage.getItem(EMAIL_KEY)||"").trim().toLowerCase();
+      const code = (el("loginCode").value||"").trim();
+      if(!email || !code) return toast("Email y código requeridos", false);
+      const res = await api("auth.verifyOtp", { email, code });
+      setSessionId(res.sessionId);
+      toast("Sesión iniciada", true);
+      await refreshMe();
+    }catch(err){ toast(err.message, false); }
+  };
+
+  btnLogout.onclick = () => {
+    setSessionId("");
+    toast("Sesión cerrada", true);
+    refreshMe();
+  };
+
+  // ---------------- Patients UI ----------------
+  const patientsTbody = el("patientsTbody");
+  const tasksTbody = el("tasksTbody");
+  const qPatients = el("qPatients");
+
+  let currentPatientId = "";
+
+  function setCurrentPatient(p){
+    currentPatientId = p ? p.patientId : "";
+    if(!p){
+      el("patientPane").classList.add("hidden");
+      el("emptyPane").classList.remove("hidden");
+      return;
+    }
+    el("emptyPane").classList.add("hidden");
+    el("patientPane").classList.remove("hidden");
+    el("pName").textContent = p.name || "";
+    el("pMeta").textContent = [p.dob||"", p.sex||"", p.phone||"", p.email||""].filter(Boolean).join(" · ");
+    el("pId").textContent = p.patientId;
+    refreshTasks();
+  }
+
+  async function refreshPatients(){
+    const sessionId = getSessionId();
+    const q = (qPatients.value||"").trim();
+    const res = await api("patients.list", { sessionId, q });
+    const rows = res.patients || [];
+    patientsTbody.innerHTML = rows.map(p => `
+      <tr>
+        <td><div style="font-weight:650">${escapeHtml(p.name||"")}</div><div class="muted small">${escapeHtml(p.patientId||"")}</div></td>
+        <td class="muted">${escapeHtml([p.phone||"", p.email||""].filter(Boolean).join(" · "))}</td>
+        <td>${escapeHtml(p.status||"")}</td>
+        <td><button class="secondary" data-open="${escapeHtml(p.patientId)}">Abrir</button></td>
+      </tr>
+    `).join("") || `<tr><td colspan="4" class="muted" style="padding:12px">Sin pacientes</td></tr>`;
+
+    patientsTbody.querySelectorAll("button[data-open]").forEach(b=>{
+      b.onclick = async ()=>{
+        try{
+          const pid = b.getAttribute("data-open");
+          const got = await api("patients.get", { sessionId, patientId: pid });
+          setCurrentPatient(got.patient);
+        }catch(err){ toast(err.message, false); }
+      };
+    });
+  }
+
+  el("btnRefreshPatients").onclick = refreshPatients;
+
+  qPatients.onkeydown = (e)=>{ if(e.key==="Enter") refreshPatients(); };
+
+  el("btnNewPatient").onclick = async () => {
+    const sessionId = getSessionId();
+    const name = prompt("Nombre y apellidos del paciente:");
+    if(!name) return;
+    try{
+      const res = await api("patients.create", {
+        sessionId,
+        name,
+        status:"ACTIVE"
+      });
+      toast("Paciente creado", true);
+      await refreshPatients();
+      const got = await api("patients.get", { sessionId, patientId: res.patientId });
+      setCurrentPatient(got.patient);
+    }catch(err){ toast(err.message, false); }
+  };
+
+  el("btnEditPatient").onclick = async () => {
+    const sessionId = getSessionId();
+    if(!currentPatientId) return;
+    try{
+      const got = await api("patients.get", { sessionId, patientId: currentPatientId });
+      const p = got.patient;
+      const name = prompt("Nombre", p.name||"");
+      if(name===null) return;
+      const phone = prompt("Teléfono", p.phone||"");
+      if(phone===null) return;
+      const email = prompt("Email", p.email||"");
+      if(email===null) return;
+      const notes = prompt("Notas (breve)", p.notes||"") ?? p.notes||"";
+      await api("patients.update", { sessionId, patientId: currentPatientId, name, phone, email, notes });
+      toast("Paciente actualizado", true);
+      await refreshPatients();
+      const again = await api("patients.get", { sessionId, patientId: currentPatientId });
+      setCurrentPatient(again.patient);
+    }catch(err){ toast(err.message, false); }
+  };
+
+  // ---------------- Tasks UI ----------------
+  async function refreshTasks(){
+    const sessionId = getSessionId();
+    if(!currentPatientId) return;
+    const res = await api("tasks.list", { sessionId, patientId: currentPatientId, status:"PENDING", limit: 200 });
+    const rows = res.tasks || [];
+    tasksTbody.innerHTML = rows.map(t => `
+      <tr>
+        <td>${escapeHtml(t.dueDate||"")}</td>
+        <td><div style="font-weight:650">${escapeHtml(t.title||"")}</div><div class="muted small">${escapeHtml(t.type||"")}${t.details?(" · "+escapeHtml(t.details)):""}</div></td>
+        <td>${escapeHtml(t.priority||"")}</td>
+        <td style="white-space:nowrap">
+          <button class="secondary" data-done="${escapeHtml(t.taskId)}">Hecho</button>
+          <button class="secondary" data-snooze="${escapeHtml(t.taskId)}">Posponer</button>
+        </td>
+      </tr>
+    `).join("") || `<tr><td colspan="4" class="muted" style="padding:12px">Sin tareas pendientes</td></tr>`;
+
+    tasksTbody.querySelectorAll("button[data-done]").forEach(b=>{
+      b.onclick = async ()=>{
+        try{
+          await api("tasks.complete", { sessionId, taskId: b.getAttribute("data-done") });
+          toast("Marcada como hecha", true);
+          refreshTasks();
+        }catch(err){ toast(err.message, false); }
+      };
+    });
+
+    tasksTbody.querySelectorAll("button[data-snooze]").forEach(b=>{
+      b.onclick = async ()=>{
+        try{
+          const nd = prompt("Nueva fecha (YYYY-MM-DD):");
+          if(!nd) return;
+          await api("tasks.snooze", { sessionId, taskId: b.getAttribute("data-snooze"), newDueDate: nd });
+          toast("Pospuesta", true);
+          refreshTasks();
+        }catch(err){ toast(err.message, false); }
+      };
+    });
+  }
+
+  el("btnRefreshTasks").onclick = refreshTasks;
+
+  el("btnCreateTask").onclick = async () => {
+    const sessionId = getSessionId();
+    if(!currentPatientId) return toast("Selecciona un paciente", false);
+    const title = (el("tTitle").value||"").trim();
+    const dueDate = (el("tDue").value||"").trim();
+    const type = (el("tType").value||"").trim();
+    const priority = (el("tPri").value||"").trim();
+    const details = (el("tDetails").value||"").trim();
+    if(!title || !dueDate) return toast("Título y fecha requeridos", false);
+
+    try{
+      await api("tasks.create", { sessionId, patientId: currentPatientId, title, dueDate, type, priority, details });
+      el("tTitle").value=""; el("tDetails").value="";
+      toast("Tarea creada", true);
+      refreshTasks();
+    }catch(err){ toast(err.message, false); }
+  };
+
+  // ---------------- Buttons ----------------
+  el("btnSaveCfg").onclick = saveCfg;
+  el("btnTestCfg").onclick = async () => {
+    try{
+      const sessionId = getSessionId();
+      if(!sessionId) return toast("Config ok. (Inicia sesión para probar auth.me)", true);
+      await api("auth.me", { sessionId });
+      toast("Conexión OK", true);
+    }catch(err){ toast(err.message, false); }
+  };
+
+  // init
+  loadCfg();
+  refreshMe();
+})();
+</script>
+</body>
+</html>
