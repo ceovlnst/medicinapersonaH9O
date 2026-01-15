@@ -142,6 +142,37 @@
       <h3 style="margin:0 0 6px 0">Acceso</h3>
       <div class="muted">Introduce tu email, solicita un código y valida el acceso.</div>
 
+<!-- SIGNUP -->
+    <div id="signupCard" class="card hidden" style="margin-top:14px">
+      <h3 style="margin:0 0 6px 0">Alta de usuario</h3>
+      <div class="muted">Para darte de alta necesitas el <b>código de alta</b> que te proporciona el administrador.</div>
+
+      <div class="grid2" style="margin-top:12px">
+        <div>
+          <div class="muted">Email</div>
+          <input id="signupEmail" placeholder="usuario@dominio.com" />
+          <div class="muted small" style="margin-top:8px">Usa el mismo email con el que luego pedirás el OTP.</div>
+        </div>
+        <div>
+          <div class="muted">Código de alta</div>
+          <input id="signupCode" placeholder="ALTA-XXXX" />
+          <div class="muted small" style="margin-top:8px">No lo compartas con pacientes.</div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
+        <button id="btnSignup">Crear usuario</button>
+        <button id="btnBackToLogin" class="secondary">Volver al login</button>
+      </div>
+    </div>
+
+    <div style="margin-top:12px" class="muted small">
+      ¿No tienes usuario? <a href="#" id="linkOpenSignup" style="color:var(--accent2);text-decoration:none;font-weight:700">Darme de alta</a>
+    </div>
+
+
+
+
       <div class="grid2" style="margin-top:12px">
         <div>
           <div class="muted">Email</div>
@@ -167,6 +198,7 @@
           </div>
         </div>
       </div>
+    
     </div>
 
     <!-- APP -->
@@ -383,6 +415,40 @@
     el("loginEmail").value = email;
     toast("Email cargado", true);
   };
+
+  // Signup (alta usuario)
+  const signupCard = el("signupCard");
+  const linkOpenSignup = document.getElementById("linkOpenSignup");
+
+  function showLogin(){
+    signupCard.classList.add("hidden");
+    loginCard.classList.remove("hidden");
+  }
+  function showSignup(){
+    loginCard.classList.add("hidden");
+    signupCard.classList.remove("hidden");
+    // precargar email si ya lo puso
+    el("signupEmail").value = (el("loginEmail").value||localStorage.getItem(EMAIL_KEY)||"").trim();
+  }
+
+  if (linkOpenSignup){
+    linkOpenSignup.onclick = (e)=>{ e.preventDefault(); showSignup(); };
+  }
+
+  el("btnBackToLogin").onclick = ()=>{ showLogin(); };
+
+  el("btnSignup").onclick = async ()=> {
+    try{
+      const email = (el("signupEmail").value||"").trim().toLowerCase();
+      const inviteCode = (el("signupCode").value||"").trim();
+      if(!email || !inviteCode) return toast("Email y código de alta requeridos", false);
+      await api("auth.signup", { email, inviteCode, role: "ASSISTANT" });
+      toast("Usuario creado/activado. Ahora pide tu código OTP.", true);
+      el("loginEmail").value = email;
+      showLogin();
+    }catch(err){ toast(err.message, false); }
+  };
+
 
   btnLogout.onclick = () => {
     setSessionId("");
